@@ -123,7 +123,13 @@ def start_training(selected_words, window):
         if known:
             know_count += 1
             selected_words.at[current_index, '正确次数'] += 1
-        meaning_label.config(text=f"{selected_words.at[current_index, '解释']}")
+
+        explanation = selected_words.at[current_index, '解释'] if pd.notna(selected_words.at[current_index, '解释']) else ""
+        note = selected_words.at[current_index, '笔记']
+        if pd.notna(note):  # 检查笔记是否为空
+            explanation += f"\n笔记: {note}"
+
+        meaning_label.config(text=explanation)
         ifo_label.config(text=f"历史记录：{words_df.at[current_index, '选中次数']}/{words_df.at[current_index, '正确次数']}")
         known_button.pack_forget()
         unknown_button.pack_forget()
@@ -139,9 +145,10 @@ def start_training(selected_words, window):
             finish_training(window)
 
     def update_word_display():
+        meaning_label.config(text="")
         ifo_label.config(text=f"当前进度：{current_index}({know_count})/{len(selected_words)}")
         word_display.config(text=f"{selected_words.at[current_index, '单词']}")
-        meaning_label.config(text="")
+
         next_button.pack_forget()
         known_button.pack(side='left', expand=True, fill='x', padx=5)
         unknown_button.pack(side='right', expand=True, fill='x', padx=5)
@@ -182,6 +189,15 @@ def start_training(selected_words, window):
         words_df.to_csv(words_filepath, index=False)
         save_training_results(selected_words, results_filepath, window)
 
+    def on_background_click(event):
+        global current_index
+        explanation = selected_words.at[current_index, '解释'] if pd.notna(selected_words.at[current_index, '解释']) else ""
+        note = selected_words.at[current_index, '笔记']
+        if pd.notna(note):  # 检查笔记是否为空
+            explanation += f"\n笔记: {note}"
+
+        meaning_label.config(text=explanation)
+
 
     training_window = ttk.Toplevel(
         title="汪涵背单词V1.0 - Training",  # 设置窗口的标题
@@ -197,7 +213,7 @@ def start_training(selected_words, window):
     # 创建显示单词、释义及按钮的界面
     meaning_frame = ttk.Frame(training_window)
     meaning_frame.grid_propagate(False)
-    meaning_frame.config(height=35)
+    meaning_frame.config(height=80, width=300)
 
     word_display = ttk.Label(training_window,
                              text=f"{selected_words.at[current_index, '单词']}",
@@ -212,7 +228,8 @@ def start_training(selected_words, window):
                               foreground='#ffffff',
                               wraplength=300,
                               )
-    meaning_label.pack()
+    meaning_label.pack( expand=True)
+    meaning_frame.pack_propagate(False)
 
 
     ifo_label = ttk.Label(training_window,
@@ -222,15 +239,15 @@ def start_training(selected_words, window):
                               foreground='#ffffff',
                               )
 
-
+    word_display.bind("<Button-1>", on_background_click)
 
 
     # 设置固定高度。例如，200像素（根据窗口大小调整）。
     # 布局部件
     training_window.grid_columnconfigure(0, weight=1)
 
-    ifo_label.grid(row=0, column=0, pady=(0, 10), sticky="n")
-    word_display.grid(row=1, column=0, pady=40, sticky="n")
+    ifo_label.grid(row=0, column=0, pady=(0, 30), sticky="n")
+    word_display.grid(row=1, column=0, pady=22, sticky="n")
     meaning_frame.grid(row=2, column=0, sticky='sew')
 
     style1 = ttk.Style()
